@@ -5,8 +5,8 @@ import fakeredis
 from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
-
 from model import Meta, ScimCreateUserRequest, ScimUser, SCIM_USER_SCHEMA, SCIM_ERROR_SCHEMA
+from ldap_server import add_user_entry, get_user_entry, delete_user_entry
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -38,6 +38,8 @@ def create_user(payload: ScimCreateUserRequest):
 
     r.set(user_id, user.json())
 
+    add_user_entry(user)
+
     return JSONResponse(
         status_code=status.HTTP_201_CREATED,
         content=user.model_dump(),
@@ -54,12 +56,24 @@ async def get_user(id):
 
     user_entry = r.get(id)
 
+    get_user_entry(id)
+
     return json.loads(user_entry)
+
+@app.put("/Users/{id}")
+async def substitute_user(id):
+    pass
+
+@app.patch("/Users/{id}")
+async def edit_user(id):
+    pass
 
 @app.delete("/Users/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(id):
     
     deleted = r.delete(id)
+
+    delete_user_entry(id)
     
     if deleted == 0:
         return Response(status_code=status.HTTP_404_NOT_FOUND)
